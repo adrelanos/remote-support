@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -x
+
+set -e
+
+server_ip="xxx.xxx.xxx.xxx"
+
+if [ "$server_ip" = "xxx.xxx.xxx.xxx" ]; then
+   echo "$0: ERROR: server_ip does not exist!"
+   exit 2
+fi
+
+if [ ! -f static.key ]; then
+   echo "$0: ERROR: static.key does not exist!"
+   exit 3
+fi
+
+sudo apt install --yes nat-traverse openvpn xpra
+
+while true ; do
+   while true; do
+      ## https://www.speicherleck.de/iblech/nat-traverse/
+      if nat-traverse --quit-after-connect 60001:$server_ip:60001 ; then
+         break
+      fi
+      sleep 1
+   done
+   sudo openvpn client.ovpn || true
+done
+
+## todo: ip of openvpn
+#xpra start-desktop --start=xterm --bind-tcp=0.0.0.0:10000

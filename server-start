@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -x
+
+set -e
+
+client_ip="xxx.xxx.xxx.xxx"
+
+if [ "$client_ip" = "xxx.xxx.xxx.xxx" ]; then
+   echo "$0: ERROR: client_ip does not exist!"
+   exit 2
+fi
+
+sudo apt install --yes nat-traverse openssl openvpn xpra
+
+if [ ! -f static.key ]; then
+    /usr/sbin/openvpn --genkey --secret static.key
+    ## https://crypto.stackexchange.com/questions/76326/how-to-derive-a-4096-bit-or-8192-bit-rsa-private-key-from-a-bip39-mnemonic-see
+    ## https://security.stackexchange.com/questions/222506/how-to-generate-an-openvpn-4096-or-8192-bit-static-key
+    ## Tue Dec 10 03:18:44 2019 Key file ('static.key') can be a maximum of 2048 bytes
+    #openssl genrsa -out static.key 8192
+fi
+
+test -f static.key
+
+while true ; do
+   while true; do
+      ## https://www.speicherleck.de/iblech/nat-traverse/
+      if nat-traverse --quit-after-connect 60001:$client_ip:60001 ; then
+         break
+      fi
+      sleep 2
+   done
+   sudo openvpn server.ovpn || true
+done
+
+#xpra attach tcp:10.8.0.2:10000
